@@ -4,6 +4,8 @@ add_library(blockzip_core STATIC
     bitstream.h
     crc32.cpp
     crc32.h
+    huffman.cpp
+    huffman.h
 )
 
 target_include_directories(blockzip_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
