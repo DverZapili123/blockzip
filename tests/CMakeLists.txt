@@ -3,6 +3,7 @@ add_executable(blockzip_tests
     test_bitstream.cpp
     test_crc32.cpp
     test_huffman.cpp
+    test_lz77.cpp
 )
 
 target_link_libraries(blockzip_tests PRIVATE blockzip_core GTest::gtest_main)

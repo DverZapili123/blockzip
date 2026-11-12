@@ -42,7 +42,7 @@ UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 ctest --test-dir build-san --ou
 | 0 | Каркас: CMake, GoogleTest, CI | готово |
 | 1 | BitWriter/BitReader, CRC32 | готово |
 | 2 | Канонический Хаффман | готово |
-| 3 | LZ77 | — |
+| 3 | LZ77 | готово |
 | 4 | ICodec, контейнер, CLI | — |
 | 5 | Потоковость, многопоточность | — |
 | 6 | Бенчмарки | — |
