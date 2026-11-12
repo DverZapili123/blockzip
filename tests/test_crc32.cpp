@@ -26,6 +26,19 @@ std::vector<std::uint8_t> make_random_bytes(std::size_t size, std::uint32_t seed
     return bytes;
 }
 
+// Deliberately bit-by-bit reference implementation: it shares no code with the
+// table-driven production version, so the two only agree if both are right.
+std::uint32_t crc32_bitwise(const std::vector<std::uint8_t>& bytes) {
+    std::uint32_t crc = 0xFFFFFFFFu;
+    for (const std::uint8_t byte : bytes) {
+        crc ^= byte;
+        for (int bit = 0; bit < 8; ++bit) {
+            crc = ((crc & 1u) != 0u) ? ((crc >> 1) ^ 0xEDB88320u) : (crc >> 1);
+        }
+    }
+    return crc ^ 0xFFFFFFFFu;
+}
+
 }  // namespace
 
 // Acceptance (SPEC, stage 1): crc32("123456789") == 0xCBF43926.
@@ -89,4 +102,32 @@ TEST(Crc32, SingleBitFlipChangesChecksum) {
     const std::uint32_t after = blockzip::crc32(bytes.data(), bytes.size());
 
     EXPECT_NE(before, after);
+}
+
+// The table-driven implementation must agree with the independent bitwise
+// reference on every size around the zero, one and many-byte cases.
+TEST(Crc32, MatchesBitwiseReferenceOnRandomData) {
+    for (std::size_t size = 0; size <= 300; ++size) {
+        const std::vector<std::uint8_t> bytes =
+            make_random_bytes(size, static_cast<std::uint32_t>(size) * 7919u + 13u);
+        EXPECT_EQ(blockzip::crc32(bytes.data(), bytes.size()), crc32_bitwise(bytes))
+            << "size = " << size;
+    }
+}
+
+TEST(Crc32, MatchesBitwiseReferenceOnLargeBuffer) {
+    const std::vector<std::uint8_t> bytes = make_random_bytes(64 * 1024, 2024);
+    EXPECT_EQ(blockzip::crc32(bytes.data(), bytes.size()), crc32_bitwise(bytes));
+}
+
+// Independent vectors produced with zlib.crc32 (same IEEE 802.3 polynomial).
+TEST(Crc32, LargeKnownVectors) {
+    const std::vector<std::uint8_t> zeros(1024 * 1024, 0);
+    EXPECT_EQ(blockzip::crc32(zeros.data(), zeros.size()), 0xA738EA1Cu);
+
+    const std::vector<std::uint8_t> zeros64k(64 * 1024, 0);
+    EXPECT_EQ(blockzip::crc32(zeros64k.data(), zeros64k.size()), 0xD7978EEBu);
+
+    const std::vector<std::uint8_t> ones(1024 * 1024, 'a');
+    EXPECT_EQ(blockzip::crc32(ones.data(), ones.size()), 0xD7CD5672u);
 }

@@ -266,3 +266,47 @@ TEST(BitStream, RejectsBitCountAboveThirtyTwo) {
     BitReader reader(writer.bytes());
     EXPECT_THROW(reader.read_bits(33), std::invalid_argument);
 }
+
+// Acceptance (SPEC, stage 1): round-trip of a bit sequence of arbitrary length,
+// checked for every length up to a limit that covers many byte boundaries.
+TEST(BitStream, EveryPayloadLengthUpTo2048RoundTrips) {
+    std::mt19937 rng(31337);
+    std::uniform_int_distribution<int> bit_dist(0, 1);
+
+    for (unsigned length = 0; length <= 2048; ++length) {
+        BitWriter writer;
+        std::vector<bool> bits;
+        bits.reserve(length);
+        for (unsigned i = 0; i < length; ++i) {
+            const bool bit = bit_dist(rng) != 0;
+            bits.push_back(bit);
+            writer.write_bit(bit);
+        }
+
+        ASSERT_EQ(writer.bit_size(), length) << "length = " << length;
+        ASSERT_EQ(writer.bytes().size(), (length + 7) / 8) << "length = " << length;
+
+        BitReader reader(writer.bytes(), writer.bit_size());
+        ASSERT_EQ(reader.bits_remaining(), length) << "length = " << length;
+        for (unsigned i = 0; i < length; ++i) {
+            ASSERT_EQ(reader.read_bit(), bits[i]) << "length = " << length << ", bit = " << i;
+        }
+        ASSERT_EQ(reader.bits_remaining(), 0u);
+        EXPECT_THROW(reader.read_bit(), BitStreamError);
+    }
+}
+
+// Padding bits that are set in the buffer must stay invisible when the payload
+// length is given explicitly, even when the payload ends mid-byte.
+TEST(BitStream, ExplicitPayloadLengthHidesSetPaddingBits) {
+    const std::vector<std::uint8_t> raw{0xFFu, 0xFFu, 0xFFu};
+    BitReader reader(raw, 13);
+    EXPECT_EQ(reader.bits_remaining(), 13u);
+    EXPECT_EQ(reader.read_bits(13), 0x1FFFu);
+    EXPECT_THROW(reader.read_bits(1), BitStreamError);
+
+    // Without the explicit length the same buffer exposes all 24 bits.
+    BitReader all(raw);
+    EXPECT_EQ(all.bits_remaining(), 24u);
+    EXPECT_EQ(all.read_bits(24), 0xFFFFFFu);
+}
