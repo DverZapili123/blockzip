@@ -27,3 +27,6 @@ Testing/
 *.csv
 !docs/*.csv
 bench/out/
+
+#Tracking incremental progress
+PROGRESS.md
