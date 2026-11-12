@@ -1,0 +1,29 @@
+# Build trees
+build/
+build-*/
+cmake-build-*/
+out/
+
+# CMake / IDE artefacts
+CMakeCache.txt
+CMakeFiles/
+compile_commands.json
+.cache/
+.vscode/
+.idea/
+
+# Binaries and objects
+*.o
+*.obj
+*.a
+*.lib
+*.exe
+*.pdb
+*.ilk
+
+# Test and benchmark output
+Testing/
+*.log
+*.csv
+!docs/*.csv
+bench/out/
